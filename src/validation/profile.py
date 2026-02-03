@@ -6,6 +6,7 @@ from PIL import Image
 from fastapi import UploadFile
 
 from database.models.accounts import GenderEnum
+from pydantic_core import PydanticCustomError
 
 
 def validate_name(name: str):
@@ -18,17 +19,24 @@ def validate_image(avatar: UploadFile) -> None:
     max_file_size = 1 * 1024 * 1024
 
     contents = avatar.file.read()
+    avatar.file.seek(0)
+
     if len(contents) > max_file_size:
         raise ValueError("Image size exceeds 1 MB")
 
     try:
         image = Image.open(BytesIO(contents))
-        avatar.file.seek(0)
-        image_format = image.format
-        if image_format not in supported_image_formats:
+        image_format = image.format.upper() if image.format else ""
+
+        actual_format = "JPG" if image_format == "JPEG" else image_format
+
+        if actual_format not in supported_image_formats:
             raise ValueError(f"Unsupported image format: {image_format}. Use one of next: {supported_image_formats}")
-    except IOError:
+
+    except Exception:
         raise ValueError("Invalid image format")
+    finally:
+        avatar.file.seek(0)
 
 
 def validate_gender(gender: str) -> None:
@@ -43,3 +51,8 @@ def validate_birth_date(birth_date: date) -> None:
     age = (date.today() - birth_date).days // 365
     if age < 18:
         raise ValueError('You must be at least 18 years old to register.')
+
+
+def validate_info(info: str) -> None:
+    if not info or not info.strip():
+        raise ValueError("Info field cannot be empty or contain only spaces.")
