@@ -66,14 +66,23 @@ async def create_profile(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to edit this profile."
         )
-    stmt = select(UserModel).where(UserModel.id == user_id)
-    result = await db.execute(stmt)
-    user = result.scalars().first()
-    if not user or not user.is_active:
+
+    if user_id == authorized_user.id:
+        user = authorized_user
+    else:
+        stmt = select(UserModel).where(UserModel.id == user_id)
+        result = await db.execute(stmt)
+        user = result.scalars().first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or not active."
         )
+
     stmt_profile = select(UserProfileModel).where(
         UserProfileModel.user_id == user.id
     )

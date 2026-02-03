@@ -48,7 +48,8 @@ def validate_birth_date(birth_date: date) -> None:
     if birth_date.year < 1900:
         raise ValueError('Invalid birth date - year must be greater than 1900.')
 
-    age = (date.today() - birth_date).days // 365
+    today = date.today()
+    age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
     if age < 18:
         raise ValueError('You must be at least 18 years old to register.')
 
